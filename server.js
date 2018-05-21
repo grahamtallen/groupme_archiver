@@ -1,19 +1,16 @@
-const express = require('express');
+import express from 'express';
 const app = express();
-var request = require("request");
+import request from "request";
 import moment from 'moment';
 import jsonexport from 'jsonexport';
 import fs from 'fs';
-
+import mkdirp from 'mkdirp';
 
 const GROUPS_BASE_URL = "https://api.groupme.com/v3/groups";
 const TOKEN_PARAM = "?token=";
 const MESSAGES_PARAM = "/messages"
 
-app.get('/', (req, res) => res.send('Hello World!'));
-
-
-
+app.get('/heartbeat', (req, res) => res.send('Bump Bump!'));
 
 app.get('/groups/:access_token', (req, res) => {
 	const access_token = req.params.access_token;
@@ -58,20 +55,28 @@ app.get('/messages/:group_id/:access_token', (req, res) => {
 			  		};
 			  }).reverse();
 
-			  // save json file
-			  const bufferName = './data/jsonBuffer.json';
-			  const csvName = `./data/messages_group_id-${group_id}.csv`;
+			  mkdirp('./data', (err) => {
+			  		if (err) {
+			  			console.error("Error with mkdirp", err)
+			  			res.status(500).send("Error with mkdirp");
+			  			return;
+			  		}
+				  	// save json file
+					const bufferName = './data/jsonBuffer.json';
+					const csvName = `./data/messages_group_id-${group_id}.csv`;
 
-			  fs.writeFile(bufferName, JSON.stringify(messages), 'utf8', () => {
-				  var reader = fs.createReadStream(bufferName);
-				  var writer = fs.createWriteStream(csvName);
+					fs.writeFile(bufferName, JSON.stringify(messages), 'utf8', () => {
+						  var reader = fs.createReadStream(bufferName);
+						  var writer = fs.createWriteStream(csvName);
 
-				  const stream = reader.pipe(jsonexport()).pipe(writer);
-				  stream.on('finish', () =>{
-				  	res.download(csvName)
-			      });
+						  const stream = reader.pipe(jsonexport()).pipe(writer);
+						  stream.on('finish', () =>{
+						  	res.download(csvName)
+					      });
 
-			  });
+					});
+			  })
+			  
 
 
 			  
